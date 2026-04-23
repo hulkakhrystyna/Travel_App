@@ -4,6 +4,9 @@ const app = document.getElementById("app");
 // ===== DATA =====
 let trips = JSON.parse(localStorage.getItem("trips")) || [];
 
+// ===== ---- =====
+let currentUser = localStorage.getItem("user") || null;
+
 // ===== DEMO TRIP =====
 const demoTrip = {
     id: 1,
@@ -59,19 +62,26 @@ function navigate(path) {
 
 // ===== RENDER =====
 async function render() {
-  const path = window.location.hash || "#/";
-  const view = routes[path] || home;
-  app.innerHTML = await view();
-  
-  document.querySelectorAll(".sidebar a").forEach(link => {
-    if (window.location.hash === link.getAttribute("href")) {
-      link.classList.add("active");
-    } else {
-      link.classList.remove("active");
+    if (!currentUser) {
+      document.body.classList.add("logged-out");
+      app.innerHTML = loginPage();
+      return;
     }
-  });
-
-}
+  
+    document.body.classList.remove("logged-out");
+  
+    const path = window.location.hash || "#/";
+    const view = routes[path] || home;
+    app.innerHTML = await view();
+  
+    document.querySelectorAll(".sidebar a").forEach(link => {
+      if (window.location.hash === link.getAttribute("href")) {
+        link.classList.add("active");
+      } else {
+        link.classList.remove("active");
+      }
+    });
+  }
 
 window.addEventListener("hashchange", render);
 
@@ -158,6 +168,40 @@ function formatDateRange(start, end) {
     )[0];
   }
 
+  function login() {
+    const username = document.getElementById("username").value;
+  
+    if (!username) return;
+  
+    localStorage.setItem("user", username);
+    currentUser = username;
+  
+    navigate("#/");
+  }
+
+  function loginPage() {
+    return `
+      <div class="login-wrapper">
+        <div class="login-card">
+  
+          <h1 class="login-logo">Waypoint</h1>
+  
+          <input id="username" placeholder="Username" />
+          <input id="password" type="password" placeholder="Password" />
+  
+          <button class="primary-btn" onclick="login()">Login</button>
+  
+        </div>
+      </div>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("user");
+    currentUser = null;
+    navigate("#/");
+  }
+
   function home() {
     const hasTrips = trips.length > 0;
     const upcoming = getUpcomingTrips(trips);
@@ -169,7 +213,7 @@ function formatDateRange(start, end) {
     if (!hasTrips) {
       return `
         <div class="empty-state">
-          <h1>Welcome 👋</h1>
+          <h1>Welcome, ${capitalize(currentUser)} 👋</h1>
           <p>Your travel planner in one place.</p>
   
           <div class="empty-box">
@@ -196,7 +240,7 @@ function formatDateRange(start, end) {
       
         return `
           <section class="empty-hero">
-            <h1>Welcome back 👋</h1>
+            <h1>Welcome back, ${capitalize(currentUser)} 👋</h1>
       
             <div class="empty-hero-box">
               <h2>No upcoming trips ✈️</h2>
@@ -251,7 +295,7 @@ function formatDateRange(start, end) {
   
     content += `
       <section class="next-trip">
-        <h1>Welcome back 👋</h1>
+        <h1>Welcome back, ${capitalize(currentUser)} 👋</h1>
         <h2>Your next trip ✈️</h2>
   
         <div class="hero">
