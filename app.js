@@ -11,14 +11,14 @@ let currentUser = localStorage.getItem("user") || null;
 const demoTrip = {
     id: 1,
     destination: "Paris",
-    start: "2026-04-20",
-    end: "2026-04-25",
+    start: "2026-09-20",
+    end: "2026-09-25",
     image: "images/paris.jpg",
   
     activities: [
-      { title: "Eiffel Tower Visit", date: "2026-04-21", time: "10:00-12:00" },
-      { title: "Louvre Museum", date: "2026-04-22", time: "14:00-17:00" },
-      { title: "Seine River Cruise", date: "2026-04-23", time: "19:00-21:00" }
+      { title: "Eiffel Tower Visit", date: "2026-09-21", time: "10:00-12:00" },
+      { title: "Louvre Museum", date: "2026-09-22", time: "14:00-17:00" },
+      { title: "Seine River Cruise", date: "2026-09-23", time: "19:00-21:00" }
     ],
   
     documents: [
