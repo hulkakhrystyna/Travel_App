@@ -124,132 +124,323 @@ function formatDateRange(start, end) {
     // DIFFERENT year
     return `${startDay} ${startMonth} ${startYear} – ${endDay} ${endMonth} ${endYear}`;
   }
+  function getSortedAllTrips(trips) {
+    return [...trips].sort((a, b) => 
+      new Date(a.start) - new Date(b.start)
+    );
+  }
 
-// ===== HOME =====
-function home() {
-    const sortedTrips = [...trips].sort((a, b) => 
-        new Date(a.start) - new Date(b.start)
-      );
-    const nextTrip = sortedTrips[0];
+  function getUpcomingTrips(trips) {
+    const today = new Date();
+  
+    return trips
+      .filter(t => new Date(t.start) >= today)
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+  }
+  
+  function getPastTrips(trips) {
+    const today = new Date();
+  
+    return trips
+      .filter(t => new Date(t.end) < today)
+      .sort((a, b) => new Date(b.start) - new Date(a.start));
+  }
 
-    let content = `
-      <h1>Welcome 👋</h1>
-      <p>Plan smarter. Travel better. Everything in one place.</p>
+  function getNextTrip(trips) {
+    const today = new Date();
+  
+    const upcoming = trips.filter(t => new Date(t.start) >= today);
+  
+    if (!upcoming.length) return null;
+  
+    return upcoming.sort((a, b) => 
+      new Date(a.start) - new Date(b.start)
+    )[0];
+  }
+
+  function home() {
+    const hasTrips = trips.length > 0;
+    const upcoming = getUpcomingTrips(trips);
+    const nextTrip = upcoming[0];
+  
+    let content = "";
+  
+    // ===== STATE 1: NO TRIPS (ONBOARDING) =====
+    if (!hasTrips) {
+      return `
+        <div class="empty-state">
+          <h1>Welcome 👋</h1>
+          <p>Your travel planner in one place.</p>
+  
+          <div class="empty-box">
+            <h2>No trips yet ✈️</h2>
+            <p>Start by creating your first trip. You'll be able to:</p>
+  
+            <ul>
+              <li>Plan activities</li>
+              <li>Store documents</li>
+              <li>Track packing</li>
+            </ul>
+  
+            <button class="primary-btn" onclick="navigate('#/create')">
+              + Create your first trip
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  
+    // ===== STATE 2: HAS TRIPS, NO UPCOMING =====
+    if (upcoming.length === 0) {
+        const past = getPastTrips(trips).slice(0, 3);
+      
+        return `
+          <section class="empty-hero">
+            <h1>Welcome back 👋</h1>
+      
+            <div class="empty-hero-box">
+              <h2>No upcoming trips ✈️</h2>
+              <p>Ready for your next adventure?</p>
+      
+              <button class="primary-btn" onclick="navigate('#/create')">
+                + Plan a new trip
+              </button>
+            </div>
+          </section>
+      
+          ${
+            past.length > 0
+              ? `
+              <section>
+                <h2>Your past trips</h2>
+      
+                <div class="grid">
+                  ${past.map(trip => `
+                    <div class="trip-card past" onclick="openTrip(${trip.id})">
+                      <img src="${trip.image}">
+                      <div class="overlay"></div>
+      
+                      <div class="trip-top">
+                        <h2>${capitalize(trip.destination)}</h2>
+                        <div class="trip-date">
+                          ${formatDateRange(trip.start, trip.end)}
+                        </div>
+                      </div>
+      
+                      <div class="trip-arrow">→</div>
+                    </div>
+                  `).join("")}
+                </div>
+      
+                ${
+                  getPastTrips(trips).length > 3
+                    ? `<button class="primary-btn" onclick="navigate('#/trips')">
+                         View all trips
+                       </button>`
+                    : ""
+                }
+              </section>
+            `
+              : ""
+          }
+        `;
+      }
+  
+    // ===== STATE 3: HAS UPCOMING TRIPS =====
+    const daysLeft = getDaysLeft(nextTrip.start);
+  
+    content += `
+      <section class="next-trip">
+        <h1>Welcome back 👋</h1>
+        <h2>Your next trip ✈️</h2>
+  
+        <div class="hero">
+          <div class="hero-overlay">
+            <div class="hero-content">
+  
+              <div class="badge">
+                <img src="images/plane_icon.svg"/>
+                <p>Starts in ${daysLeft} days</p>
+              </div>
+  
+              <h1>${capitalize(nextTrip.destination)}</h1>
+  
+              <div class="next-date">
+                <img src="images/calendar.svg"/>
+                <p>${formatDateRange(nextTrip.start, nextTrip.end)}</p>
+              </div>
+  
+              <button class="primary-btn" onclick="openTrip(${nextTrip.id})">
+                View trip details →
+              </button>
+  
+            </div>
+          </div>
+  
+          <img src="${nextTrip.image}" class="hero-image" />
+        </div>
+      </section>
     `;
   
-    if (trips.length === 0) {
-      content += `
-        <br>
-        <button class="primary-btn" onclick="navigate('#/create')">
-          + ADD NEW TRIP
-        </button>
-      `;
-      return content;
-    }
-
-    if (nextTrip) {
-      content += `
-        <h1>Your next trip</h1>
-        <div class="trip-card featured" onclick="openTrip(${nextTrip.id})">
-          <img src="${nextTrip.image}">
-          <div class="overlay"></div>
-    
-          <div class="trip-top">
-            <h2>${capitalize(nextTrip.destination)}</h2>
-            <div class="trip-date">
-              ${formatDateRange(nextTrip.start, nextTrip.end)}
+    // ===== UPCOMING TRIPS PREVIEW =====
+    const previewTrips = upcoming.slice(0, 3);
+  
+    content += `
+      <section>
+        <h2>Your Upcoming Trips</h2>
+  
+        <div class="grid">
+          ${previewTrips.map(trip => `
+            <div class="trip-card" onclick="openTrip(${trip.id})">
+              <img src="${trip.image}">
+              <div class="overlay"></div>
+  
+              <div class="trip-top">
+                <h2>${capitalize(trip.destination)}</h2>
+                <div class="trip-date">
+                  ${formatDateRange(trip.start, trip.end)}
+                </div>
+              </div>
+  
+              <div class="trip-arrow">→</div>
             </div>
-          </div>
+          `).join("")}
         </div>
-      `;
-    }
   
-    content += `<h2>Your Trips</h2><div class="grid">`;
-
-    const previewTrips = sortedTrips.slice(1, 4);
-
-  
-    for (let trip of previewTrips) {
-  
-      content += `
-        <div class="trip-card" onclick="openTrip(${trip.id})">
-          <img src="${trip.image}">
-          <div class="overlay"></div>
-  
-          <div class="trip-top">
-            <h2>${capitalize(trip.destination)}</h2>
-            <div class="trip-date">
-               ${formatDateRange(trip.start, trip.end)}
-            </div>
-          </div>
-  
-          <div class="trip-arrow">→</div>
-        </div>
-      `;
-    }
-  
-    content += `</div>`;
-  
-    if (trips.length > 3) {
-      content += `
-        <br>
-        <button class="primary-btn" onclick="navigate('#/trips')">
-          View All Trips
-        </button>
-      `;
-    }
+        ${
+          upcoming.length > 3
+            ? `<button class="primary-btn" onclick="navigate('#/trips')">
+                 View all trips
+               </button>`
+            : ""
+        }
+      </section>
+    `;
   
     return content;
   }
 
-// ===== MY TRIPS=====
+  let currentFilter = "all";
+
+  function setFilter(filter) {
+    currentFilter = filter;
+    render();
+  }
 function tripsPage() {
-  if (trips.length === 0) {
-    return `
-      <h1>My Trips</h1>
-      <p>No trips yet. Create your first trip!</p>
-      <button class="primary-btn" onclick="navigate('#/create')">
-        + New Trip
-      </button>
+    let content = `
+      <section class="trips-page">
+  
+        <!-- HEADER -->
+        <header class="trips-header">
+          <div>
+            <h1>My Trips</h1>
+            <p class="subtext">Plan and manage your journeys</p>
+          </div>
+  
+          <button class="primary-btn" onclick="navigate('#/create')">
+            + New Trip
+          </button>
+        </header>
     `;
-  }
-
-  let content = `<h1>My Trips</h1>
-    <button class="primary-btn" onclick="navigate('#/create')">
-      + NEW TRIP
-    </button>
-    <div class="grid">`;
-
-    const sortedTrips = [...trips].sort((a, b) => {
-        return new Date(a.start) - new Date(b.start);
-    });
-
-    for (let trip of sortedTrips) {
-
+  
+    // ===== EMPTY: NO TRIPS AT ALL =====
+    if (trips.length === 0) {
+      content += `
+        <section class="empty-full">
+          <h2>No trips yet ✈️</h2>
+          <p>Start planning your first adventure</p>
+  
+          <button class="primary-btn" onclick="navigate('#/create')">
+            + Create your first trip
+          </button>
+        </section>
+      </section>
+      `;
+      return content;
+    }
+  
+    // ===== FILTERS =====
     content += `
-    <div class="trip-card" onclick="openTrip(${trip.id})">
-      
-      <img src="${trip.image}" />
+      <section class="filters">
+        <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" 
+          onclick="setFilter('all')">All</button>
   
-      <div class="overlay"></div>
+        <button class="filter-btn ${currentFilter === 'upcoming' ? 'active' : ''}" 
+          onclick="setFilter('upcoming')">Upcoming</button>
   
-      <div class="trip-top">
-        <h2>${capitalize(trip.destination)}</h2>
-        <div class="trip-date">
-           ${formatDateRange(trip.start, trip.end)}
-        </div>
-      </div>
+        <button class="filter-btn ${currentFilter === 'past' ? 'active' : ''}" 
+          onclick="setFilter('past')">Past</button>
+      </section>
+    `;
   
-      <div class="trip-bottom">
-        <div class="trip-arrow">→</div>
-      </div>
+    // ===== FILTER LOGIC =====
+    let filteredTrips = [];
   
-    </div>
-  `;
+    if (currentFilter === "upcoming") {
+      filteredTrips = getUpcomingTrips(trips);
+    } else if (currentFilter === "past") {
+      filteredTrips = getPastTrips(trips);
+    } else {
+      filteredTrips = getSortedAllTrips(trips);
+    }
+  
+    // ===== COUNT =====
+    content += `
+      <p class="trip-count">
+        ${filteredTrips.length} ${
+          currentFilter === "past"
+            ? "past trips"
+            : currentFilter === "upcoming"
+            ? "upcoming trips"
+            : "trips"
+        }
+      </p>
+    `;
+  
+    // ===== EMPTY FILTER STATE =====
+    if (filteredTrips.length === 0) {
+      content += `
+        <p class="empty-inline">
+          No ${
+            currentFilter === "past" ? "past" : "upcoming"
+          } trips
+        </p>
+      `;
+    } else {
+      // ===== GRID =====
+      content += `<section class="grid">`;
+  
+      filteredTrips.forEach(trip => {
+        const isPast = new Date(trip.end) < new Date();
+  
+        content += `
+          <article class="trip-card ${isPast ? 'past' : 'upcoming'}" 
+                   onclick="openTrip(${trip.id})">
+  
+            <img src="${trip.image}" />
+  
+            <div class="overlay"></div>
+  
+            <div class="trip-top">
+              <h2>${capitalize(trip.destination)}</h2>
+  
+              <div class="trip-date">
+                ${formatDateRange(trip.start, trip.end)}
+              </div>
+            </div>
+  
+            <div class="trip-arrow">→</div>
+          </article>
+        `;
+      });
+  
+      content += `</section>`;
+    }
+  
+    content += `</section>`;
+  
+    return content;
   }
-
-  return content;
-}
 
 // ===== CREATE TRIP =====
 function createTrip() {
@@ -653,6 +844,17 @@ function addActivity() {
     input.value = "";
     saveTrips();
     render();
+  }
+
+  function getDaysLeft(date) {
+    const oneDay = 24 * 60 * 60 * 1000;
+  
+    const today = new Date();
+    const tripDate = new Date(date);
+  
+    const diff = tripDate - today;
+  
+    return Math.ceil(diff / oneDay);
   }
 
 
