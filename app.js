@@ -742,8 +742,14 @@ function documentsPage() {
   
       <!-- Simple form (works for user-created trips) -->
       <div class="doc-form">
-        <input id="document-input" placeholder="Document name" />
-        <input type="date" id="document-expiry" />
+       <div class="input-group">
+          <label>Document name</label>
+          <input id="document-input" placeholder="e.g. Passport" />
+        </div>
+        <div class="input-group">
+          <label>Expiry date</label>
+          <input type="date" id="document-expiry" />
+        </div>
         <button class="primary-btn" onclick="addDocument()">Add</button>
       </div>
 
@@ -962,8 +968,14 @@ function profilePage() {
       </div>
 
       <div class="doc-form">
-        <input id="user-doc-input" placeholder="e.g. Passport" />
-        <input type="date" id="doc-expiry" />
+        <div class="input-group">
+          <label>Document name</label>
+          <input id="user-doc-input" placeholder="e.g. Passport" />
+        </div>
+        <div class="input-group">
+          <label>Expiry date</label>
+          <input type="date" id="doc-expiry">
+        </div>
         <button class="primary-btn" onclick="addUserDocument()">Add</button>
       </div>
 

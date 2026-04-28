@@ -612,7 +612,7 @@
   }
   
   form input {
-    width: 100%;
+    width: 80%;
     padding: 12px;
     margin-bottom: 15px;
     border-radius: 10px;
@@ -960,6 +960,17 @@
     display: flex;
     gap: 10px;
     margin: 20px 0;
+    align-items: center;
+  }
+
+  .doc-form button{
+    margin-left: auto;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
   }
   
   .doc-form input {
