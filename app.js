@@ -3,43 +3,27 @@ const app = document.getElementById("app");
 
 // ===== DATA =====
 let trips = JSON.parse(localStorage.getItem("trips")) || [];
+let userDocuments = JSON.parse(localStorage.getItem("userDocuments")) || [];
 
-// ===== ---- =====
-let currentUser = localStorage.getItem("user") || null;
+// ===== USER =====
+let currentUser = sessionStorage.getItem("user") || null;
 
-// ===== DEMO TRIP =====
-const demoTrip = {
-    id: 1,
-    destination: "Paris",
-    start: "2026-09-20",
-    end: "2026-09-25",
-    image: "images/paris.jpg",
-  
-    activities: [
-      { title: "Eiffel Tower Visit", date: "2026-09-21", time: "10:00-12:00" },
-      { title: "Louvre Museum", date: "2026-09-22", time: "14:00-17:00" },
-      { title: "Seine River Cruise", date: "2026-09-23", time: "19:00-21:00" }
-    ],
-  
-    documents: [
-      { name: "Passport", image: "images/passport.jpg" },
-      { name: "Flight Ticket", image: "images/ticket.jpg" }
-    ],
-  
-    packing: [
-      { name: "Passport", done: true },
-      { name: "Clothes", done: false },
-      { name: "Charger", done: false }
-    ]
-  };
-  
-  // only add if not already there
-  if (!trips.some(t => t.id === demoTrip.id)) {
-    trips.unshift(demoTrip);
-    saveTrips();
+// ===== DEMO DOCUMENTS =====
+
+const demoUserDocs = [
+  { name: "Passport", image: "images/passport.jpg", expiryDate: "2026-07-12" },
+  { name: "Flight Ticket", image: "images/ticket.jpg" }
+];
+
+demoUserDocs.forEach(doc => {
+  if (!userDocuments.some(d => d.name === doc.name)) {
+    userDocuments.push(doc);
   }
+});
 
-// ===== PEXELS API =====
+saveUserDocuments();
+
+// ===== UNSPLASH API =====
 const UNSPLASH_ACCESS_KEY = "lLJOskVnnAlKIdV3cUGuSZ2qlJNinlyb9uicryOefo0";
 
 // ===== ROUTES =====
@@ -51,7 +35,8 @@ const routes = {
     "#/activities": activitiesPage,
     "#/documents": documentsPage,
     "#/packing": packingPage,
-    "#/edit": editTripPage
+    "#/edit": editTripPage,
+    "#/profile": profilePage
   };
 
 // ===== NAVIGATION =====
@@ -173,7 +158,7 @@ function formatDateRange(start, end) {
   
     if (!username) return;
   
-    localStorage.setItem("user", username);
+    sessionStorage.setItem("user", username);
     currentUser = username;
   
     navigate("#/");
@@ -197,7 +182,7 @@ function formatDateRange(start, end) {
   }
 
   function logout() {
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("user");
     currentUser = null;
     navigate("#/");
   }
@@ -302,7 +287,7 @@ function formatDateRange(start, end) {
           <div class="hero-overlay">
             <div class="hero-content">
   
-              <div class="badge">
+              <div class="hero-days-badge">
                 <img src="images/plane_icon.svg"/>
                 <p>Starts in ${daysLeft} days</p>
               </div>
@@ -494,7 +479,7 @@ function createTrip() {
       <input id="destination" placeholder="Destination" required>
       <input id="start" type="date">
       <input id="end" type="date">
-      <button class="primary-btn">CREATE</button>
+      <button class="primary-btn">Create</button>
     </form>
   `;
 }
@@ -557,6 +542,7 @@ function openTrip(id) {
 // ===== TRIP DETAILS (3 CARDS) =====
 function tripDetails() {
     const trip = getCurrentTrip();
+    const daysLeft = getDaysLeft(trip.start);
     if (!trip) return `<h1>Trip not found</h1>`;
 
     const { total, done, percent } = getPackingProgress(trip);
@@ -570,15 +556,17 @@ function tripDetails() {
             <img src="${trip.image}" />
      </div>
      <div class="header-content">
+            <div class="days-badge">
+                <img src="images/plane_icon.svg"/>
+                <p>Starts in ${daysLeft} days</p>
+            </div>
             <h1>${capitalize(trip.destination)}</h1>
             <p class="trip-date">${formatDateRange(trip.start, trip.end)}</p>
             <button class="primary-btn" onclick="navigate('#/edit')">
                Edit Trip
             </button>
+            <button class="danger-btn" onclick="deleteTrip(${trip.id}, event)">✕</button>
      </div>
-     <div class="header-top">
-                <button class="danger-btn" onclick="deleteTrip(${trip.id}, event)">✕</button>
-            </div>
     </div>
     <div class="details-grid">
   
@@ -685,7 +673,7 @@ function tripDetails() {
       </form>
   
       <br>
-      <button onclick="navigate('#/trip')">← Back</button>
+      <button class="secondary-btn" onclick="navigate('#/trip')">← Back</button>
     `;
   }
 
@@ -755,18 +743,73 @@ function documentsPage() {
       <!-- Simple form (works for user-created trips) -->
       <div class="doc-form">
         <input id="document-input" placeholder="Document name" />
-        <button class="primary-btn" onclick="addDocument()">+ Add</button>
+        <input type="date" id="document-expiry" />
+        <button class="primary-btn" onclick="addDocument()">Add</button>
       </div>
-  
-      <!-- Documents list -->
+
+      <div class="divider">
+        <span>OR</span>
+      </div>
+
+      <div class="saved-wrapper">
+         <p class="helper-text">Use documents saved in your profile</p>
+
+      <div class="saved-section">
+
+  <div class="saved-header" onclick="toggleSavedDocs()">
+    <div>
+      <h3>Saved documents</h3>
+    </div>
+    <span id="arrow">⌄</span>
+  </div>
+
+  <div id="saved-docs" class="saved-list hidden">
+    ${userDocuments.map((d, i) => {
+      const trip = getCurrentTrip();
+      const alreadyAdded = trip.documents.some(td => td.name === d.name);
+
+      return `
+        <div class="saved-item">
+
+          ${
+            d.image
+              ? `<img src="${d.image}" class="doc-image" />`
+              : `<div class="doc-placeholder">📄</div>`
+          }
+
+          <div class="doc-info">
+            <h3>${d.name}</h3>
+          </div>
+
+          <button 
+            class="add-btn ${alreadyAdded ? 'disabled' : ''}" 
+            onclick="addDocToTrip(${i})"
+            ${alreadyAdded ? 'disabled' : ''}
+          >
+            ${alreadyAdded ? 'Added' : '+ Add'}
+          </button>
+
+        </div>
+      `;
+    }).join("")}
+  </div>
+</div>
+
+</div>
+     
+      <h2 class="section-title">Documents in this trip</h2>
       <div class="doc-list">
         ${
           trip.documents.length === 0
-            ? `<p>No documents yet</p>`
+            ? `<div class="trip-empty">
+                 <p>No documents yet</p>
+                 <span>Add a document or select from saved</span>
+               </div>`
             : trip.documents.map((d, i) => {
   
                 const name = typeof d === "string" ? d : d.name;
                 const image = typeof d === "string" ? null : d.image;
+                const expiryDate = typeof d === "string" ? null : d.expiryDate;
   
                 return `
                   <div class="doc-item">
@@ -778,8 +821,17 @@ function documentsPage() {
                     }
   
                     <div class="doc-info">
-                      <h3>${name}</h3>
-                    </div>
+                       <h3>${d.name}</h3>
+                         <div class="doc-meta">
+                           ${
+                             d.expiryDate
+                               ? `<span class="expiry-date">Expires on ${formatDate(d.expiryDate)}</span>`
+                               : " "
+                           }
+                         </div>
+       
+                        ${getExpiryBadge(d.expiryDate)}                  
+                     </div>
   
                     <div class="delete-action">
                         <button onclick="deleteDocument(${i})">✕</button>
@@ -792,6 +844,29 @@ function documentsPage() {
       </div>
     `;
   }
+
+
+function toggleSavedDocs() {
+  const container = document.getElementById("saved-docs");
+  container.classList.toggle("hidden");
+}
+
+function addDocToTrip(index) {
+  const trip = getCurrentTrip();
+  const doc = userDocuments[index];
+
+  // Check if already exists
+  if (trip.documents.some(d => d.name === doc.name)) {
+    alert("Document already added");
+    return;
+  }
+
+  // Add document
+  trip.documents.push(doc);
+
+  saveTrips();
+  render();
+}
 
 // ===== PACKING PAGE =====
 function packingPage() {
@@ -840,6 +915,149 @@ function packingPage() {
     `;
   }
 
+function profilePage() {
+  const total = trips.length;
+  const upcoming = getUpcomingTrips(trips).length;
+  const past = getPastTrips(trips).length;
+
+  return `
+    <section class="profile">
+
+      <h1>My Profile</h1>
+
+      <div class="profile-card">
+        <div class="avatar">
+          ${currentUser.charAt(0).toUpperCase()}
+        </div>
+
+        <div>
+          <h2>${capitalize(currentUser)}</h2>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat">
+          <h3>${total}</h3>
+          <p>Total Trips</p>
+        </div>
+
+        <div class="stat">
+          <h3>${upcoming}</h3>
+          <p>Upcoming</p>
+        </div>
+
+        <div class="stat">
+          <h3>${past}</h3>
+          <p>Past Trips</p>
+        </div>
+      </div>
+
+      <h2>Saved documents</h2>
+      <p class="section-subtext">
+        Reusable documents for your trips
+      </p>
+
+      <div class="upload-container">
+         <img class="upload-icon" src="images/upload_icon.svg">
+      </div>
+
+      <div class="doc-form">
+        <input id="user-doc-input" placeholder="e.g. Passport" />
+        <input type="date" id="doc-expiry" />
+        <button class="primary-btn" onclick="addUserDocument()">Add</button>
+      </div>
+
+      <div class="doc-list">
+        ${
+            userDocuments.map((d, i) => `
+
+            <div class="doc-item">
+          
+              ${
+                d.image
+                  ? `<img src="${d.image}" class="doc-image" onclick="window.open('${d.image}', '_blank')" />`
+                  : `<div class="doc-placeholder">📄</div>`
+              }
+          
+              <div class="doc-info">
+                <h3>${d.name}</h3>
+                  <div class="doc-meta">
+                    ${
+                      d.expiryDate
+                        ? `<span class="expiry-date">Expires on ${formatDate(d.expiryDate)}</span>`
+                        : " "
+                    }
+                  </div>
+
+                 ${getExpiryBadge(d.expiryDate)}                  
+              </div>
+          
+              <div class="delete-action">
+                <button onclick="deleteUserDocument(${i})">✕</button>
+              </div>
+          
+            </div>
+          
+          `).join("")
+        }
+        </div>
+
+    </section>
+  `;
+}
+
+function addUserDocument() {
+  const name = document.getElementById("user-doc-input").value;
+  const expiry = document.getElementById("doc-expiry").value;
+
+  userDocuments.push({
+    name,
+    image: null,
+    expiryDate: expiry || null
+  });
+
+  saveUserDocuments();
+  render();
+}
+  
+  function deleteUserDocument(i) {
+    userDocuments.splice(i, 1);
+    saveUserDocuments();
+    render();
+  }
+  
+  function saveUserDocuments() {
+    localStorage.setItem("userDocuments", JSON.stringify(userDocuments));
+  }
+
+  function formatDate(date) {
+    if (!date) return "";
+  
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  }
+
+  function getExpiryBadge(date) {
+    if (!date) return "";
+  
+    const today = new Date();
+    const expiry = new Date(date);
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+  
+    if (diffDays < 0) {
+      return `<span class="badge expired">Expired</span>`;
+    }
+  
+    if (diffDays <= 90) {
+      return `<span class="badge warning">Expiring soon (${diffDays} days)</span>`;
+    }
+  
+    return `<span class="badge valid">Valid</span>`;
+  }
+
 // ===== ADD FUNCTIONS =====
 function addActivity() {
     const title = document.getElementById("activity-title").value;
@@ -877,12 +1095,15 @@ function addActivity() {
 
   function addDocument() {
     const input = document.getElementById("document-input");
+    const expiry = document.getElementById("document-expiry").value;
+
     if (!input.value) return;
   
     const trip = getCurrentTrip();
   
     trip.documents.push({
-      name: input.value
+      name: input.value,
+      expiryDate: expiry || null
     });
   
     input.value = "";
@@ -971,5 +1192,15 @@ function capitalize(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+function toggleSidebar() {
+    document.body.classList.toggle("sidebar-open");
+  }
+
 // ===== INIT =====
 render();
+
+document.addEventListener("click", (e) => {
+    if (e.target.closest(".sidebar a")) {
+      document.body.classList.remove("sidebar-open");
+    }
+  });
