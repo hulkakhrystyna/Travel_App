@@ -230,6 +230,10 @@
     border-radius: 20px;
     box-shadow: 0 10px 25px rgba(0,0,0,0.08);
   }
+
+  .empty-box h2{
+    margin-bottom: 10px;
+  }
   
   .empty-box ul {
     margin: 15px 0;
@@ -320,6 +324,7 @@
   .hero-days-badge {
     display: flex;
     gap: 10px;
+    width: fit-content;
     color: var(--primary);
     background: var(--text-main);
     padding: 8px 14px;
@@ -365,8 +370,8 @@
   /* HEADER */
   .trips-header {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 15px;
     padding: 30px;
     border-radius: 24px;
     background: linear-gradient(
@@ -541,6 +546,7 @@
   .trip-date {
     background: rgba(255,255,255,0.65);
     padding: 4px 10px;
+    width: fit-content;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 500;
@@ -658,6 +664,7 @@
   .days-badge {
     display: flex;
     gap: 10px;
+    width: fit-content;
     color: var(--primary);
     background: rgba(90, 193, 191, 0.15);
     padding: 8px 14px;
@@ -1333,11 +1340,6 @@
         width: 100%;
         height: auto;
       }
-    .trips-header {
-        flex-direction: column;
-        align-items: baseline;
-        gap: 15px;
-    }
 
     .trip-hero {
         flex-direction: column;
