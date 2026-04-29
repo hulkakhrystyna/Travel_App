@@ -164,6 +164,12 @@ function formatDateRange(start, end) {
     navigate("#/");
   }
 
+  function logout() {
+    sessionStorage.removeItem("user");
+    currentUser = null;
+    navigate("#/");
+  }
+
   function loginPage() {
     return `
       <div class="login-wrapper">
@@ -179,12 +185,6 @@ function formatDateRange(start, end) {
         </div>
       </div>
     `;
-  }
-
-  function logout() {
-    sessionStorage.removeItem("user");
-    currentUser = null;
-    navigate("#/");
   }
 
   function home() {
@@ -533,7 +533,6 @@ function deleteTrip(id, e) {
     navigate("#/trips");
   }
 
-// ===== OPEN TRIP =====
 function openTrip(id) {
   localStorage.setItem("currentTrip", id);
   navigate("#/trip");
@@ -861,7 +860,6 @@ function addDocToTrip(index) {
   const trip = getCurrentTrip();
   const doc = userDocuments[index];
 
-  // Check if already exists
   if (trip.documents.some(d => d.name === doc.name)) {
     alert("Document already added");
     return;
@@ -1086,7 +1084,6 @@ function addActivity() {
       time
     });
   
-    // clear inputs
     document.getElementById("activity-title").value = "";
     document.getElementById("activity-date").value = "";
     document.getElementById("activity-time").value = "";
@@ -1190,7 +1187,7 @@ function deletePacking(i) {
   render();
 }
 
-// ===== HELPERS =====
+
 function getCurrentTrip() {
   const id = localStorage.getItem("currentTrip");
   return trips.find(t => t.id == id);
@@ -1208,7 +1205,6 @@ function toggleSidebar() {
     document.body.classList.toggle("sidebar-open");
   }
 
-// ===== INIT =====
 render();
 
 document.addEventListener("click", (e) => {
